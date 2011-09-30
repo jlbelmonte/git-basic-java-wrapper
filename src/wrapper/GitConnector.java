@@ -23,7 +23,7 @@ import exceptions.RepositoryNotFoundException;
 
 public class GitConnector {
 	public static Logger logger = Logger.getLogger(GitConnector.class);	
-	private String command = "/usr/bin/hg";
+	private String command = "/usr/bin/git";
 	private String uri;
 	private String path;
 	private String revFrom = "";
@@ -41,12 +41,12 @@ public class GitConnector {
 	}
 	
 	// main call to system
-	private Json callHG (String action) throws RepositoryNotFoundException{
+	private Json callGit (String action) throws RepositoryNotFoundException{
 			File dir = new File(path);
 
 		CommandLine cl = new CommandLine(command);
-		logger.debug("HGConnector msg: Starting to "+action+" over "+this.uri);
-		if (GitConstants.LOG.equals(action) || "incoming".equals(action)){
+		logger.debug("GitConnector msg: Starting to "+action+" over "+this.uri);
+		if (GitConstants.LOG.equals(action)){
 			if (!dir.exists() || dir.list().length == 0){
 				throw new RepositoryNotFoundException(path);
 			}
@@ -55,15 +55,6 @@ public class GitConnector {
 			cl.addArgument(revFrom+":"+revTo);
 			cl.addArgument("--template");
 			cl.addArgument(GitConstants.TEMPLATE);
-		} else if ("cloneRev".equals(action)) {
-			if (!dir.exists()) {
-				dir.mkdir();
-			}
-			cl.addArgument(GitConstants.CLONE);
-			cl.addArgument("--rev");
-			cl.addArgument(revFrom);
-			cl.addArgument(uri);
-			cl.addArgument(path);
 		} else if (GitConstants.CLONE.equals(action)) {
 			if (!dir.exists()){ 
 				logger.debug(dir.getAbsolutePath());
@@ -75,13 +66,13 @@ public class GitConnector {
 			cl.addArgument(path);
 		} else if (GitConstants.PULL.equals(action)){
 			if(!dir.exists() || dir.list().length == 0 ){
-				return callHG(GitConstants.CLONE);
-			}else if(dir.list().length ==1 && dir.list()[0].equals(".hg")){
+				return callGit(GitConstants.CLONE);
+			}else if(dir.list().length ==1 && dir.list()[0].equals(".git")){
 				//some times the clone corrupts so we just get a .hg dir but not working local repo
 				//delete it and try a clean clone
 				logger.info("deleting"+ dir.getAbsolutePath());
 				GitUtilities.deleteDirectory(dir);
-				return callHG(GitConstants.CLONE);
+				return callGit(GitConstants.CLONE);
 			}
 			cl.addArgument(GitConstants.PULL);
 			cl.addArgument("-u");
@@ -96,7 +87,7 @@ public class GitConnector {
 		PipedInputStream pipeIn = null;
 		
 		try{
-			file = File.createTempFile("HG-", ".log");
+			file = File.createTempFile("Git-", ".log");
 			fOS = new FileOutputStream(file);
 			PumpStreamHandler streamHandler = new PumpStreamHandler();
 			streamHandler = new PumpStreamHandler(fOS);
@@ -119,19 +110,22 @@ public class GitConnector {
 				dontPanicValues[i]=i;
 			}
 			executor.setExitValues(dontPanicValues);
-			
+//			FIXME
+			logger.info(cl.toString());
 			//execute command
 			int statusCode = executor.execute(cl);
-			logger.debug("HGConnector msg: Executed "+action+" over "+this.uri+ " exitStatus "+statusCode);
+			logger.debug("GitConnector msg: Executed "+action+" over "+this.uri+ " exitStatus "+statusCode);
+//			FIXME
+			logger.info("GitConnector msg: Executed "+action+" over "+this.uri+ " exitStatus "+statusCode);
 			fr = new FileReader(file);
 			br = new BufferedReader(fr);
 			String stdErr = GitUtilities.piped2String(pipeIn);
 			result = GitUtilities.parseData(br, stdErr, statusCode, action);
-			logger.debug("HGConnector msg: result "+ result);
+			logger.debug("GitConnector msg: result "+ result);
 			
 		}
 		catch (IOException e) {
-			logger.error("HG Exception: "+ uri, e);
+			logger.error("Git Exception: "+ uri, e);
 		} finally {
 			try {fOS.close();} catch (Exception e) {}
 			try {fr.close();} catch (Exception e) {}
@@ -146,39 +140,43 @@ public class GitConnector {
 	
 	// public methods
 	//clones
-	
-	public Json cloneRev(String revision) throws RepositoryNotFoundException{
-		this.revFrom = revision;
-		return callHG("cloneRev");
-	}
 
 	public Json cloneRepo() throws RepositoryNotFoundException{
-		return callHG("clone");
+		return callGit("clone");
 	}
 	
 	// logs
 	public Json log() throws RepositoryNotFoundException{
-		return callHG("log");
+		return callGit("log");
 	}
 	public Json log(String revFrom, String revTo) throws RepositoryNotFoundException{
 		this.revFrom = revFrom;
 		this.revTo = revTo;
-		return  callHG("log");		
+		return  callGit("log");		
 	}
 	
 	public Json log(String revFrom) throws RepositoryNotFoundException{
 		this.revFrom = revFrom;
 		this.revTo="tip";
-		return callHG("log");
-	}
-	
-	public Json hgRemoteLog() throws RepositoryNotFoundException{
-		return callHG("incoming");
+		return callGit("log");
 	}
 	
 	//update
 	public Json pull() throws RepositoryNotFoundException{
-		return callHG("pull");
+		return callGit("pull");
+	}
+	
+	public static void main(String[] args) {
+		String uri = "git@github.com:faival/git-basic-java-wrapper.git";
+		String path = "/Users/pablomolina/Documents/workspace/tmp";
+		GitConnector gitConnector = new GitConnector(uri, path);
+		try {
+			gitConnector.cloneRepo();
+			gitConnector.pull();
+		} catch (RepositoryNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
 

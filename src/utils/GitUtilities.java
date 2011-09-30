@@ -61,7 +61,7 @@ public class GitUtilities {
 			return Json.map().put("status", "NOK").put("action", action).put("error", stdErr);
 
 		// Log or incoming need parsing
-		if (GitConstants.LOG.equals(action) || GitConstants.INCOMING.equals(action)){
+		if (GitConstants.LOG.equals(action)){
 			Pattern commitPattern = Pattern.compile(GitConstants.LOG_PATTERN);
 			String s = null;
 			Json logList = Json.list();
