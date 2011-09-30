@@ -89,16 +89,6 @@ public class GitUtilities {
 					}
 					
 					if (s.startsWith("[BEGIN]")) {
-						if(s.startsWith("[BEGIN]") && !s.endsWith("EOC")){
-							tmp = s.replace("\n", " ");
-							continue;
-						}else if(!s.startsWith("[BEGIN]") && !s.endsWith("EOC") && tmp.startsWith("[BEGIN]")){
-							tmp += s.replace("\n", " ");
-							continue;
-						}else if (!s.startsWith("[BEGIN]") && s.endsWith("EOC") && tmp.startsWith("[BEGIN]")){
-							tmp += s.replace("\n", " ");
-							s = tmp;
-						}
 						tmp2 = s;
 					}
 					
