@@ -7,11 +7,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Arrays;
 
 import org.apache.log4j.Logger;
 
@@ -56,34 +58,60 @@ public class GitUtilities {
 	}
 	
 	public static Json parseData(BufferedReader stdOutput,  String stdErr, int statusCode, String action){
+		
 		// status code NOK
 		if (statusCode != 0)
 			return Json.map().put("status", "NOK").put("action", action).put("error", stdErr);
-
+		
 		// Log or incoming need parsing
 		if (GitConstants.LOG.equals(action)){
 			Pattern commitPattern = Pattern.compile(GitConstants.LOG_PATTERN);
 			String s = null;
 			Json logList = Json.list();
-			String tmp="";
+			String tmp=""; //save partial commit lines
+			String tmp1=""; //save files
+			String tmp2=""; //last begin row
+			List<String> files = new ArrayList<String>();
 			try{
 				//Deal with multiline comments and commitlogs
 				while( ( s = stdOutput.readLine()) != null){
 					s = s.trim();
-					if(s.startsWith("[BEGIN]") && !s.endsWith("EOC")){
-						tmp = s.replace("\n", " ");
-						continue;
-					}else if(!s.startsWith("[BEGIN]") && !s.endsWith("EOC") && tmp.startsWith("[BEGIN]")){
-						tmp += s.replace("\n", " ");
-						continue;
-					}else if (!s.startsWith("[BEGIN]") && s.endsWith("EOC") && tmp.startsWith("[BEGIN]")){
-						tmp += s.replace("\n", " ");
-						s = tmp;
+				
+					if (s.startsWith("[CINIT]") && !tmp1.isEmpty()) {
+						Matcher logM = commitPattern.matcher(tmp2);
+						if(logM.find()){
+							Json rev = processRevisionLog(logM, Arrays.asList(tmp1.split("\n")));
+							tmp1 = "";
+							tmp="";
+							logList.add(rev);
+							continue;
+						}
 					}
-					tmp="";
-					Matcher logM = commitPattern.matcher(s);
+					
+					if (s.startsWith("[BEGIN]")) {
+						if(s.startsWith("[BEGIN]") && !s.endsWith("EOC")){
+							tmp = s.replace("\n", " ");
+							continue;
+						}else if(!s.startsWith("[BEGIN]") && !s.endsWith("EOC") && tmp.startsWith("[BEGIN]")){
+							tmp += s.replace("\n", " ");
+							continue;
+						}else if (!s.startsWith("[BEGIN]") && s.endsWith("EOC") && tmp.startsWith("[BEGIN]")){
+							tmp += s.replace("\n", " ");
+							s = tmp;
+						}
+						tmp2 = s;
+					}
+					
+					if (!s.startsWith("[BEGIN]") && !s.startsWith("[CINIT]") && !s.trim().isEmpty()) {
+						tmp1+= s+"\n";
+					}
+				}
+				if (!tmp1.isEmpty() && !tmp2.isEmpty()) {
+					Matcher logM = commitPattern.matcher(tmp2);
 					if(logM.find()){
-						Json rev = processRevisionLog(logM);
+						Json rev = processRevisionLog(logM, Arrays.asList(tmp1.split("\n")));
+						tmp1 = "";
+						tmp="";
 						logList.add(rev);
 					}
 				}
@@ -96,34 +124,55 @@ public class GitUtilities {
 		return Json.map().put("status", "OK" );
 	}
 
-	private static Json processRevisionLog(Matcher rev) {
+	private static Json processRevisionLog(Matcher rev, List<String> files) {
 		String revision = rev.group(1);
-		String node = rev.group(2);
+		String tree = rev.group(2);
 		String author = rev.group(3);
-		String date = rev.group(4);
-		String message = rev.group(5);	
-		String added = rev.group(6);
-		String removed = rev.group(7);
-		String files = rev.group(8);
-		Json revLog = Json.map()
-		.put("revision", revision)
-		.put("node", node)
-		.put("author", author)
-		.put("date", date)
-		.put("message", message);
-
-		List <String >addedList = Arrays.asList(added.split("\\s+"));
-		List <String >removedList = Arrays.asList(removed.split("\\s+"));
-		List <String> modifiedList = new ArrayList<String>();
-		List <String >fileList = Arrays.asList(files.split("\\s+"));
-		for (String string : fileList) {
-			if(!addedList.contains(string) || !removedList.contains(string)){
-				modifiedList.add(string);
+		String email = rev.group(4);
+		String message = rev.group(5).replaceAll("-", " ");
+		String date = rev.group(6);
+		Map<String, List<String>> mapFiles = new HashMap<String, List<String>>();
+		Pattern pattern = Pattern.compile("([ADM])\\s+(.*?)$");
+		for (String file : files) {
+			if (file.isEmpty())
+				continue;
+			Matcher matcher = pattern.matcher(file);
+			if (matcher.find()) {
+				String fileType = matcher.group(1);
+				String fileName = matcher.group(2);
+				List<String> filesNames = new ArrayList<String>();
+				if (mapFiles.containsKey(fileType)) {
+					filesNames = mapFiles.get(fileType);
+				}
+				filesNames.add(fileName);
+				mapFiles.put(fileType, filesNames);
 			}
 		}
-		revLog.put("added", addedList)
-		.put("removed", removedList)
-		.put("modified", modifiedList);
+		
+		Json revLog = Json.map();
+	
+		revLog.put("revision", revision)
+			.put("tree", tree)
+			.put("author", author)
+			.put("email", email)
+			.put("date", date)
+			.put("message", message);
+		if (mapFiles.containsKey("A")) {
+			revLog.put("added", mapFiles.get("A"));
+		} else {
+			revLog.put("added", new ArrayList<String>());
+		}
+		if (mapFiles.containsKey("D")) {
+			revLog.put("removed", mapFiles.get("D"));
+		} else {
+			revLog.put("removed", new ArrayList<String>());
+		}
+		if (mapFiles.containsKey("M")) {
+			revLog.put("modified", mapFiles.get("M"));
+		} else {
+			revLog.put("modified", new ArrayList<String>());
+		}
+	
 		return revLog;
 	}
 	

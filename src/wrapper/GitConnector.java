@@ -51,10 +51,15 @@ public class GitConnector {
 				throw new RepositoryNotFoundException(path);
 			}
 			cl.addArgument(action);
-			cl.addArgument("--rev");
-			cl.addArgument(revFrom+":"+revTo);
-			cl.addArgument("--template");
-			cl.addArgument(GitConstants.TEMPLATE);
+//			FIXME
+//			cl.addArgument("--rev");
+//			cl.addArgument(revFrom+":"+revTo);
+			cl.addArgument("--format="+GitConstants.TEMPLATE);
+			cl.addArgument("--raw");
+			cl.addArgument("--name-status");
+			cl.addArgument("--no-merges");
+			cl.addArgument("--diff-filter");
+			cl.addArgument("-AMD");
 		} else if (GitConstants.CLONE.equals(action)) {
 			if (!dir.exists()){ 
 				logger.debug(dir.getAbsolutePath());
@@ -115,12 +120,15 @@ public class GitConnector {
 			//execute command
 			int statusCode = executor.execute(cl);
 			logger.debug("GitConnector msg: Executed "+action+" over "+this.uri+ " exitStatus "+statusCode);
-//			FIXME
-			logger.info("GitConnector msg: Executed "+action+" over "+this.uri+ " exitStatus "+statusCode);
+
 			fr = new FileReader(file);
+			
 			br = new BufferedReader(fr);
+			
 			String stdErr = GitUtilities.piped2String(pipeIn);
+			
 			result = GitUtilities.parseData(br, stdErr, statusCode, action);
+			logger.info("GitConnector msg: result "+ result);
 			logger.debug("GitConnector msg: result "+ result);
 			
 		}
@@ -173,6 +181,7 @@ public class GitConnector {
 		try {
 			gitConnector.cloneRepo();
 			gitConnector.pull();
+			gitConnector.log();
 		} catch (RepositoryNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
