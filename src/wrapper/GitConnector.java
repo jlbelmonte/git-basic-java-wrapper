@@ -51,9 +51,11 @@ public class GitConnector {
 				throw new RepositoryNotFoundException(path);
 			}
 			cl.addArgument(action);
-//			FIXME
-//			cl.addArgument("--rev");
-//			cl.addArgument(revFrom+":"+revTo);
+			if (!this.revFrom.isEmpty() && !this.revTo.isEmpty()) {
+				cl.addArgument(revFrom+".."+revTo);
+			} else if (!this.revFrom.isEmpty()) {
+				cl.addArgument(revFrom+"..");
+			}
 			cl.addArgument("--format="+GitConstants.TEMPLATE);
 			cl.addArgument("--raw");
 			cl.addArgument("--name-status");
@@ -165,7 +167,6 @@ public class GitConnector {
 	
 	public Json log(String revFrom) throws RepositoryNotFoundException{
 		this.revFrom = revFrom;
-		this.revTo="tip";
 		return callGit("log");
 	}
 	
@@ -181,7 +182,7 @@ public class GitConnector {
 		try {
 			gitConnector.cloneRepo();
 			gitConnector.pull();
-			gitConnector.log();
+			gitConnector.log("d8739d3e801de1ab72c52db50452a907a20c07c1");
 		} catch (RepositoryNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
