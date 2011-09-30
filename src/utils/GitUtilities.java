@@ -84,7 +84,7 @@ public class GitUtilities {
 							tmp1 = "";
 							tmp="";
 							logList.add(rev);
-							continue;
+							continue; 
 						}
 					}
 					
