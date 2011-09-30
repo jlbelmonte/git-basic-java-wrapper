@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="git-basic-java-wrapper" default="pack" basedir=".">
+<tstamp>
+    <format property="TODAY" pattern="yyyy-MM-dd"/>
+</tstamp>
+<path id="foo">
+<fileset dir="lib">
+<include name="**/*.jar"/>
+</fileset>
+</path>
+<target name="compile">
+<javac srcdir="src" destdir="bin" classpathref="foo" />
+</target>
+
+<target name="pack" depends="compile">
+<delete dir="pack" />
+<mkdir dir="pack" />
+<jar destfile="pack/git-wrapper-bin-${TODAY}.jar">
+<fileset dir="bin" />
+</jar>
+<jar destfile="pack/git-wrapper-src-${TODAY}.jar">
+<fileset dir="src" />
+</jar>
+</target>
+
+</project>
