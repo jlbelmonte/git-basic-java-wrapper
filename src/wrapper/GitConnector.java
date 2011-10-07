@@ -62,6 +62,7 @@ public class GitConnector {
 			cl.addArgument("--no-merges");
 			cl.addArgument("--diff-filter");
 			cl.addArgument("-AMD");
+			cl.addArgument("--date-order");
 		} else if (GitConstants.CLONE.equals(action)) {
 			if (!dir.exists()){ 
 				logger.debug(dir.getAbsolutePath());
@@ -117,8 +118,6 @@ public class GitConnector {
 				dontPanicValues[i]=i;
 			}
 			executor.setExitValues(dontPanicValues);
-//			FIXME
-			logger.info(cl.toString());
 			//execute command
 			int statusCode = executor.execute(cl);
 			logger.debug("GitConnector msg: Executed "+action+" over "+this.uri+ " exitStatus "+statusCode);
@@ -130,7 +129,6 @@ public class GitConnector {
 			String stdErr = GitUtilities.piped2String(pipeIn);
 			
 			result = GitUtilities.parseData(br, stdErr, statusCode, action);
-			logger.info("GitConnector msg: result "+ result);
 			logger.debug("GitConnector msg: result "+ result);
 			
 		}

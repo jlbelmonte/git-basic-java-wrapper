@@ -68,10 +68,8 @@ public class GitUtilities {
 			Pattern commitPattern = Pattern.compile(GitConstants.LOG_PATTERN);
 			String s = null;
 			Json logList = Json.list();
-			String tmp=""; //save partial commit lines
 			String tmp1=""; //save files
 			String tmp2=""; //last begin row
-			List<String> files = new ArrayList<String>();
 			try{
 				//Deal with multiline comments and commitlogs
 				while( ( s = stdOutput.readLine()) != null){
@@ -82,7 +80,6 @@ public class GitUtilities {
 						if(logM.find()){
 							Json rev = processRevisionLog(logM, Arrays.asList(tmp1.split("\n")));
 							tmp1 = "";
-							tmp="";
 							logList.add(rev);
 							continue; 
 						}
@@ -101,7 +98,6 @@ public class GitUtilities {
 					if(logM.find()){
 						Json rev = processRevisionLog(logM, Arrays.asList(tmp1.split("\n")));
 						tmp1 = "";
-						tmp="";
 						logList.add(rev);
 					}
 				}
