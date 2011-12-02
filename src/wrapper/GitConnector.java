@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
-import java.util.UUID;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -41,7 +40,7 @@ public class GitConnector {
 	}
 	
 	// main call to system
-	private Json callGit (String action) throws RepositoryNotFoundException{
+	private Json callGit(String action) throws RepositoryNotFoundException{
 			File dir = new File(path);
 
 		CommandLine cl = new CommandLine(command);
@@ -60,8 +59,7 @@ public class GitConnector {
 			cl.addArgument("--raw");
 			cl.addArgument("--name-status");
 			cl.addArgument("--no-merges");
-			cl.addArgument("--diff-filter");
-			cl.addArgument("-AMD");
+			cl.addArgument("--diff-filter=[AMD]");
 			cl.addArgument("--date-order");
 		} else if (GitConstants.CLONE.equals(action)) {
 			if (!dir.exists()){ 
@@ -130,10 +128,10 @@ public class GitConnector {
 			
 			result = GitUtilities.parseData(br, stdErr, statusCode, action);
 			logger.debug("GitConnector msg: result "+ result);
-			
-		}
-		catch (IOException e) {
+			return result;
+		} catch (IOException e) {
 			logger.error("Git Exception: "+ uri, e);
+			return Json.map().put("status", "NOK").put("action", action).put("error", e.getMessage());
 		} finally {
 			try {fOS.close();} catch (Exception e) {}
 			try {fr.close();} catch (Exception e) {}
@@ -143,7 +141,7 @@ public class GitConnector {
 			logger.debug("File size " + file.length());
 			file.delete();
 		}
-		return result;
+		
 	}
 	
 	// public methods
@@ -171,20 +169,6 @@ public class GitConnector {
 	//update
 	public Json pull() throws RepositoryNotFoundException{
 		return callGit("pull");
-	}
-	
-	public static void main(String[] args) {
-		String uri = "git@github.com:faival/git-basic-java-wrapper.git";
-		String path = "/Users/pablomolina/Documents/workspace/tmp";
-		GitConnector gitConnector = new GitConnector(uri, path);
-		try {
-			gitConnector.cloneRepo();
-			gitConnector.pull();
-			gitConnector.log("d8739d3e801de1ab72c52db50452a907a20c07c1");
-		} catch (RepositoryNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 }
 

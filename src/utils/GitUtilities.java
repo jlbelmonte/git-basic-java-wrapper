@@ -36,23 +36,20 @@ public class GitUtilities {
 		return null;
 	}
 
-	public static String piped2String(PipedInputStream pis){
+	public static String piped2String(PipedInputStream pis) throws IOException{
 		final PipedOutputStream pos = new PipedOutputStream();
 		final BufferedInputStream bis = new BufferedInputStream(pis);
 		final BufferedOutputStream bos = new BufferedOutputStream(pos);
 		final StringBuffer sb = new StringBuffer();
 		int p = 0;
 		byte[] b = new byte[1024];
-		try {
+		
 			while (!(bis.available()<1)){
 				p = bis.read(b, 0, 1024);
 				bos.write(b, 0 , p);
 				sb.append(new String(b, 0 , p));
 			}
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-			ioe.getMessage();
-		}
+
 		String content = sb.toString();
 		return content;
 	}
@@ -102,6 +99,7 @@ public class GitUtilities {
 					}
 				}
 			} catch (Exception e) {
+				logger.error(e, e);
 				return(Json.map().put("status", "NOK").put("action", action).put("error", "exception").put("message", e.getMessage()));
 			}
 			return Json.map().put("status", "OK").put("commits", logList);
